@@ -110,13 +110,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
       - name: Update kubeconfig for EKS
+        env:
+          CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME || 'cluster' }} --region ${{ secrets.AWS_REGION || 'us-east-1' }}
+          aws eks update-kubeconfig --name "${CLUSTER_NAME:-cluster}" --region "${AWS_REGION:-us-east-1}"
 
       - name: Set Image Tag and Apply Kubernetes Manifests
         env:
