@@ -82,9 +82,10 @@ jobs:
       - name: Build, Tag, and Push Docker Image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.FRONTEND_ECR_REPO || 'frontend' }}
+          SECRET_REPO: ${{ secrets.FRONTEND_ECR_REPO }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          ECR_REPOSITORY="${SECRET_REPO:-frontend}"
           docker build --build-arg REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
@@ -124,8 +125,9 @@ jobs:
       - name: Set Image Tag and Apply Kubernetes Manifests
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.FRONTEND_ECR_REPO || 'frontend' }}
+          SECRET_REPO: ${{ secrets.FRONTEND_ECR_REPO }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          ECR_REPOSITORY="${SECRET_REPO:-frontend}"
           kustomize edit set image frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           kustomize build . | kubectl apply -f -
