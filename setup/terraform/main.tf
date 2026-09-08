@@ -188,7 +188,7 @@ resource "aws_iam_role_policy_attachment" "eks_service" {
 ##################
 # Track latest release for the given k8s version
 data "aws_ssm_parameter" "eks_ami_release_version" {
-  name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.main.version}/amazon-linux-2/recommended/release_version"
+  name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.main.version}/amazon-linux-2023/x86_64/standard/recommended/release_version"
 }
 
 resource "aws_eks_node_group" "main" {
@@ -197,7 +197,8 @@ resource "aws_eks_node_group" "main" {
   version         = aws_eks_cluster.main.version
   node_role_arn   = aws_iam_role.node_group.arn
   subnet_ids      = [var.enable_private == true ? aws_subnet.private_subnet.id : aws_subnet.public_subnet.id]
-  # release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
+  ami_type        = "AL2023_x86_64_STANDARD"
+  release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
   instance_types  = ["t3.small"]
 
   scaling_config {
