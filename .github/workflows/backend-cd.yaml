@@ -1,59 +1,59 @@
-name: Frontend CD
+name: Backend Continuous Deployment
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'starter/frontend/**'
+      - 'starter/backend/**'
   workflow_dispatch:
 
 jobs:
   lint:
-    name: Lint Frontend
+    name: Lint Backend
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: starter/frontend
+        working-directory: starter/backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: starter/frontend/package-lock.json
+          python-version: '3.10'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Pipenv and dependencies
+        run: |
+          pip install pipenv
+          pipenv install --dev
 
       - name: Run Linter
-        run: npm run lint
+        run: pipenv run lint
 
   test:
-    name: Test Frontend
+    name: Test Backend
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: starter/frontend
+        working-directory: starter/backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: starter/frontend/package-lock.json
+          python-version: '3.10'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Pipenv and dependencies
+        run: |
+          pip install pipenv
+          pipenv install --dev
 
       - name: Run Tests
-        run: CI=true npm test
+        run: pipenv run test
 
   build:
     name: Build and Push Docker Image
@@ -61,9 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: starter/frontend
-    env:
-      REACT_APP_MOVIE_API_URL: http://localhost:5000
+        working-directory: starter/backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,11 +80,11 @@ jobs:
       - name: Build, Tag, and Push Docker Image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          SECRET_REPO: ${{ secrets.FRONTEND_ECR_REPO }}
+          SECRET_REPO: ${{ secrets.BACKEND_ECR_REPO }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          ECR_REPOSITORY="${SECRET_REPO:-frontend}"
-          docker build --build-arg REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          ECR_REPOSITORY="${SECRET_REPO:-backend}"
+          docker build --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
@@ -96,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: starter/frontend/k8s
+        working-directory: starter/backend/k8s
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -125,9 +123,9 @@ jobs:
       - name: Set Image Tag and Apply Kubernetes Manifests
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          SECRET_REPO: ${{ secrets.FRONTEND_ECR_REPO }}
+          SECRET_REPO: ${{ secrets.BACKEND_ECR_REPO }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          ECR_REPOSITORY="${SECRET_REPO:-frontend}"
-          kustomize edit set image frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          ECR_REPOSITORY="${SECRET_REPO:-backend}"
+          kustomize edit set image backend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           kustomize build . | kubectl apply -f -
