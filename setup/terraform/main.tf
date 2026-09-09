@@ -149,6 +149,9 @@ resource "aws_eks_cluster" "main" {
     endpoint_public_access  = var.enable_private == true ? false : true
     endpoint_private_access = true
   }
+  lifecycle {
+    ignore_changes = [version]
+  }
   depends_on = [aws_iam_role_policy_attachment.eks_cluster, aws_iam_role_policy_attachment.eks_service]
 }
 
